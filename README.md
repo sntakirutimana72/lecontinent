@@ -60,6 +60,13 @@ The assignment objective is to write API endpoints to interact with products and
 7. Finally, with your testing tool of your choice (postman: recommended) tool, try it out
 
 
+## How to run tests
+
+```shell
+$ pytest
+```
+
+
 
 ## ✍️ Authors
 
