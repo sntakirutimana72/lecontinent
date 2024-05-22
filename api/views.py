@@ -1,12 +1,15 @@
+import json
+
 from rest_framework import views, status
 from rest_framework.response import Response
-from .serializers import ProductSerializer, OrderSerializer
+from .serializers import ProductSerializer, OrderSerializer, serialize_order
 from .models import Product, Order
 from .helpers import get_or_none
 
 
+# noinspection PyMethodMayBeStatic
 class ProductIndexView(views.APIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, _):
         products = Product.objects.all()
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -49,11 +52,11 @@ class ProductDetailView(views.APIView):
         return Response(f'Product with id = {pk} has been successfully deleted', status=status.HTTP_200_OK)
 
 
+# noinspection PyMethodMayBeStatic
 class OrderIndexView(views.APIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, _):
         orders = Order.objects.all()
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serialize_order(orders), status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = OrderSerializer(data=request.data)
@@ -72,14 +75,14 @@ class OrderDetailView(views.APIView):
         order = self._queryset(pk)
         if order is None:
             return Response('No order found', status=status.HTTP_404_NOT_FOUND)
-        return Response(ProductSerializer(order).data, status=status.HTTP_200_OK)
+        return Response(serialize_order([order], single=True), status=status.HTTP_200_OK)
 
     def put(self, request, pk):
         order = self._queryset(pk)
         if order is None:
             return Response(f'Order with id={pk} not found', status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProductSerializer(instance=order, data=request.data, partial=True)
+        serializer = OrderSerializer(instance=order, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
