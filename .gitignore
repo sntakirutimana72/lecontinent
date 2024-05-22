@@ -1,0 +1,28 @@
+# js/ts modules
+node_modules/
+
+# databases
+*.db
+*.sqlite
+*.sqlite3
+
+# temporary files
+tmp/
+
+# compiled cache files
+__pycache__/
+
+# tests
+.pytest_cache/
+
+# log files
+logs/
+*.log
+
+# credentials
+*pems
+*secrets
+*credentials
+
+# local environment variables
+*.local
