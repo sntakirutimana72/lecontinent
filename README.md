@@ -55,6 +55,7 @@ The assignment objective is to write API endpoints to interact with products and
     ```shell
    $ pipenv shell
    $ pipenv install
+   $ python manage.py migrate
    $ python manage.py runserver
     ```
 7. Finally, with your testing tool of your choice (postman: recommended) tool, try it out
