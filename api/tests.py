@@ -26,20 +26,20 @@ class ProductModelTestCases(TestCase):
 
 class OrderModelTestCases(TestCase):
     def setUp(self):
-        self.prodct_1 = Product.objects.create(name='juice', description='orange', price=22, stock=11)
+        product = Product.objects.create(name='juice', description='orange', price=22, stock=11)
         self.placeholder = {
             'customer_name': 'user',
             'customer_phone': '8797434',
             'order_date': datetime.now(),
             'status': 'pending',
             'total_price': 44,
-            'products': [self.prodct_1.id],
+            'products': [product.id],
         }
 
     def tearDown(self):
         Product.objects.all().delete()
 
-    def test_should_valid(self):
+    def test_should_be_valid(self):
         serializer = OrderSerializer(data=self.placeholder)
         serializer.is_valid()
         self.assertTrue(serializer.is_valid())
