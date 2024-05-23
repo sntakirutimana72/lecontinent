@@ -46,7 +46,7 @@ The assignment objective is to write API endpoints to interact with products and
 
 ## How To Set it up
 
-1. Clone this project repo to your local environment ([Repository](...))
+1. Clone this project repo to your local environment ([Repository](https://github.com/sntakirutimana72/lecontinent))
 2. Install Pycharm, a python editor
 3. Install Python ~v3.10
 4. Install Pipenv ~latest
@@ -81,7 +81,7 @@ $ pytest
 
 Contributions, issues, and feature requests are welcome!
 
-Feel free to check the [issues page](../../issues/).
+Feel free to check the [issues page](https://github.com/sntakirutimana72/lecontinent/issues/).
 
 
 ## 📝 License
