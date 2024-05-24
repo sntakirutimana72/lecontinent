@@ -79,10 +79,13 @@ class ProductIndexViewTestCases(APITestCase):
             'price': 11.04,
         }
 
-    def test_create_new_prod_successfully(self):
-        url = reverse('prod-index')
+    @staticmethod
+    def route_url(*args, **kwargs):
+        return reverse('prod-index', args=args, kwargs=kwargs)
+
+    def test_create_successfully(self):
         self.assertFalse(Product.objects.exists())
-        response = self.client.post(url, data=self.prod_dummy)
+        response = self.client.post(self.route_url(), data=self.prod_dummy)
         self.assertEquals(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(Product.objects.exists())
         # Data from db
@@ -91,12 +94,22 @@ class ProductIndexViewTestCases(APITestCase):
         from_res = response.json()
         self.assertEqual(from_db_serial, from_res)
 
-    def test_create_new_prod_without_name(self):
-        url = reverse('prod-index')
+    def test_create_without_name(self):
         invalid_dummy = self.prod_dummy
         # Remove name key
         invalid_dummy.pop('name')
         self.assertFalse(Product.objects.exists())
-        response = self.client.post(url, data=invalid_dummy)
+        response = self.client.post(self.route_url(), data=invalid_dummy)
         self.assertEquals(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
         self.assertFalse(Product.objects.exists())
+
+    def test_update_successfully(self):
+        sample = Product.objects.create(**self.prod_dummy)
+        og_last_update_date = sample.updated_at
+        og_stock = sample.stock
+        url = reverse('prod-details', args=(sample.pk,))
+        response = self.client.put(url, data={'stock': sample.stock + 7})
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        sample.refresh_from_db()
+        self.assertNotEquals(og_last_update_date, sample.updated_at)
+        self.assertNotEquals(og_stock, sample.stock)
