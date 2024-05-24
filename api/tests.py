@@ -1,10 +1,14 @@
+import random
 from datetime import datetime
-from django.test import TestCase
+from rest_framework import status
+from rest_framework.reverse import reverse
+from rest_framework.test import APITestCase, APIClient
 from .serializers import ProductSerializer, OrderSerializer
-from .models import Product
+from .models import Product, Order
+from .serializers import ProductSerializer
 
 
-class ProductModelTestCases(TestCase):
+class ProductModelTestCases(APITestCase):
     def setUp(self):
         self.placeholder = {
             'name': 'Juice',
@@ -24,7 +28,7 @@ class ProductModelTestCases(TestCase):
         self.assertFalse(serializer.is_valid())
 
 
-class OrderModelTestCases(TestCase):
+class OrderModelTestCases(APITestCase):
     def setUp(self):
         product = Product.objects.create(name='juice', description='orange', price=22, stock=11)
         self.placeholder = {
@@ -54,3 +58,45 @@ class OrderModelTestCases(TestCase):
         placeholder = {**self.placeholder, 'status': 'ongoing'}
         serializer = OrderSerializer(data=placeholder)
         self.assertFalse(serializer.is_valid())
+
+
+# noinspection PyUnresolvedReferences
+class ProductIndexViewTestCases(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def tearDown(self):
+        Order.objects.all().delete()
+        Product.objects.all().delete()
+
+    @property
+    def prod_dummy(self):
+        # Create a dummy product model instance
+        return {
+            'name': f'new_dummy_prod_name',
+            'description': f'new_dummy_prod_desc',
+            'stock': 48.5,
+            'price': 11.04,
+        }
+
+    def test_create_new_prod_successfully(self):
+        url = reverse('prod-index')
+        self.assertFalse(Product.objects.exists())
+        response = self.client.post(url, data=self.prod_dummy)
+        self.assertEquals(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Product.objects.exists())
+        # Data from db
+        from_db = Product.objects.first()
+        from_db_serial = ProductSerializer(from_db).data
+        from_res = response.json()
+        self.assertEqual(from_db_serial, from_res)
+
+    def test_create_new_prod_without_name(self):
+        url = reverse('prod-index')
+        invalid_dummy = self.prod_dummy
+        # Remove name key
+        invalid_dummy.pop('name')
+        self.assertFalse(Product.objects.exists())
+        response = self.client.post(url, data=invalid_dummy)
+        self.assertEquals(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(Product.objects.exists())
