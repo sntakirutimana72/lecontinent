@@ -86,6 +86,17 @@ class ProductIndexViewTestCases(ProductViewsTestCase):
         self.urlName = 'prod-index'
         super().setUp()
 
+    def test_retrieve_all(self):
+        count = 3
+        instance_list = [Product(**attrs) for attrs in ([self.prod_dummy] * count)]
+        Product.objects.bulk_create(instance_list)
+        response = self.client.get(self.get_url())
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        products_list = response.json()
+        self.assertEquals(len(products_list), count)
+        expected = ProductSerializer(Product.objects.all(), many=True).data
+        self.assertEqual(products_list, expected)
+
     def test_create_successfully(self):
         self.assertFalse(Product.objects.exists())
         response = self.client.post(self.get_url(), data=self.prod_dummy)
