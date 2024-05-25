@@ -61,31 +61,34 @@ class OrderModelTestCases(APITestCase):
 
 
 # noinspection PyUnresolvedReferences
-class ProductIndexViewTestCases(APITestCase):
+class ProductViewsTestCase(APITestCase):
+    urlName: str
+
     def setUp(self):
         self.client = APIClient()
-
-    def tearDown(self):
-        Order.objects.all().delete()
-        Product.objects.all().delete()
-
-    @property
-    def prod_dummy(self):
-        # Create a dummy product model instance
-        return {
+        self.prod_dummy = {
             'name': f'new_dummy_prod_name',
             'description': f'new_dummy_prod_desc',
             'stock': 48.5,
             'price': 11.04,
         }
 
-    @staticmethod
-    def route_url(*args, **kwargs):
-        return reverse('prod-index', args=args, kwargs=kwargs)
+    def tearDown(self):
+        Order.objects.all().delete()
+        Product.objects.all().delete()
+
+    def get_url(self, *args, **kwargs):
+        return reverse(self.urlName, args=args, kwargs=kwargs)
+
+
+class ProductIndexViewTestCases(ProductViewsTestCase):
+    def setUp(self):
+        self.urlName = 'prod-index'
+        super().setUp()
 
     def test_create_successfully(self):
         self.assertFalse(Product.objects.exists())
-        response = self.client.post(self.route_url(), data=self.prod_dummy)
+        response = self.client.post(self.get_url(), data=self.prod_dummy)
         self.assertEquals(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(Product.objects.exists())
         # Data from db
@@ -99,17 +102,26 @@ class ProductIndexViewTestCases(APITestCase):
         # Remove name key
         invalid_dummy.pop('name')
         self.assertFalse(Product.objects.exists())
-        response = self.client.post(self.route_url(), data=invalid_dummy)
+        response = self.client.post(self.get_url(), data=invalid_dummy)
         self.assertEquals(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
         self.assertFalse(Product.objects.exists())
+
+
+class ProductDetailsViewTests(ProductViewsTestCase):
+    def setUp(self):
+        self.urlName = 'prod-details'
+        super().setUp()
 
     def test_update_successfully(self):
         sample = Product.objects.create(**self.prod_dummy)
         og_last_update_date = sample.updated_at
         og_stock = sample.stock
-        url = reverse('prod-details', args=(sample.pk,))
-        response = self.client.put(url, data={'stock': sample.stock + 7})
+        response = self.client.put(self.get_url(sample.pk), data={'stock': sample.stock + 7})
         self.assertEquals(response.status_code, status.HTTP_200_OK)
         sample.refresh_from_db()
         self.assertNotEquals(og_last_update_date, sample.updated_at)
         self.assertNotEquals(og_stock, sample.stock)
+
+    def test_update_on_non_existing(self):
+        response = self.client.put(self.get_url(9878), data={'name': 'flour'})
+        self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
