@@ -1,13 +1,14 @@
 import random
 from datetime import datetime
 from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase, APIClient
 from .serializers import ProductSerializer, OrderSerializer
 from .models import Product, Order
-from .serializers import ProductSerializer
 
 
+# noinspection PyUnresolvedReferences
 class ProductModelTestCases(APITestCase):
     def setUp(self):
         self.placeholder = {
@@ -28,6 +29,7 @@ class ProductModelTestCases(APITestCase):
         self.assertFalse(serializer.is_valid())
 
 
+# noinspection PyUnresolvedReferences
 class OrderModelTestCases(APITestCase):
     def setUp(self):
         product = Product.objects.create(name='juice', description='orange', price=22, stock=11)
@@ -63,6 +65,7 @@ class OrderModelTestCases(APITestCase):
 # noinspection PyUnresolvedReferences
 class ProductViewsTestCase(APITestCase):
     urlName: str
+    response: Response
 
     def setUp(self):
         self.client = APIClient()
@@ -77,54 +80,75 @@ class ProductViewsTestCase(APITestCase):
         Order.objects.all().delete()
         Product.objects.all().delete()
 
+    def create_prod(self):
+        record = Product.objects.create(**self.prod_dummy)
+        return record
+
     def get_url(self, *args, **kwargs):
         return reverse(self.urlName, args=args, kwargs=kwargs)
 
+    def assertStatus(self, status_code: int):
+        self.assertEquals(self.response.status_code, status_code)
 
-class ProductIndexViewTestCases(ProductViewsTestCase):
+
+# noinspection PyUnresolvedReferences
+class ProductIndexViewTests(ProductViewsTestCase):
     def setUp(self):
         self.urlName = 'prod-index'
         super().setUp()
 
-    def test_retrieve_all(self):
+    def test_get_all_products(self):
         count = 3
         instance_list = [Product(**attrs) for attrs in ([self.prod_dummy] * count)]
         Product.objects.bulk_create(instance_list)
-        response = self.client.get(self.get_url())
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
-        products_list = response.json()
+        self.response = self.client.get(self.get_url())
+        self.assertStatus(status.HTTP_200_OK)
+        products_list = self.response.json()
         self.assertEquals(len(products_list), count)
         expected = ProductSerializer(Product.objects.all(), many=True).data
         self.assertEqual(products_list, expected)
 
-    def test_create_successfully(self):
+    def test_create_product_successfully(self):
         self.assertFalse(Product.objects.exists())
-        response = self.client.post(self.get_url(), data=self.prod_dummy)
-        self.assertEquals(response.status_code, status.HTTP_201_CREATED)
+        self.response = self.client.post(self.get_url(), data=self.prod_dummy)
+        self.assertStatus(status.HTTP_201_CREATED)
         self.assertTrue(Product.objects.exists())
         # Data from db
         from_db = Product.objects.first()
         from_db_serial = ProductSerializer(from_db).data
-        from_res = response.json()
+        from_res = self.response.json()
         self.assertEqual(from_db_serial, from_res)
 
-    def test_create_without_name(self):
+    def test_create_product_without_name(self):
         invalid_dummy = self.prod_dummy
         # Remove name key
         invalid_dummy.pop('name')
         self.assertFalse(Product.objects.exists())
-        response = self.client.post(self.get_url(), data=invalid_dummy)
-        self.assertEquals(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.response = self.client.post(self.get_url(), data=invalid_dummy)
+        self.assertStatus(status.HTTP_422_UNPROCESSABLE_ENTITY)
         self.assertFalse(Product.objects.exists())
 
 
+# noinspection PyUnresolvedReferences
 class ProductDetailsViewTests(ProductViewsTestCase):
     def setUp(self):
         self.urlName = 'prod-details'
         super().setUp()
 
+    def test_get_specific_product_by_id(self):
+        sample = self.create_prod()
+        self.response = self.client.get(self.get_url(sample.pk))
+        self.assertStatus(status.HTTP_200_OK)
+        from_be = self.response.json()
+        self.assertIn('id', from_be)
+        self.assertEquals(sample.pk, from_be['id'])
+
+    def test_get_non_existing_product_by_id(self):
+        self.response = self.client.get(self.get_url(879898))
+        self.assertStatus(status.HTTP_404_NOT_FOUND)
+
     def test_update_successfully(self):
-        sample = Product.objects.create(**self.prod_dummy)
+        sample = self.create_prod()
         og_last_update_date = sample.updated_at
         og_stock = sample.stock
         response = self.client.put(self.get_url(sample.pk), data={'stock': sample.stock + 7})
